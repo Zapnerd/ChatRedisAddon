@@ -1,0 +1,5 @@
+name: ChatRedisAddon
+version: '${project.version}'
+main: com.oresmash.chatredisaddon.ChatRedisAddon
+api-version: '1.19'
+author: Zapnerd
