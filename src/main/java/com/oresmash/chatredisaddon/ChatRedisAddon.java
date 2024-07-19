@@ -15,7 +15,6 @@ public final class ChatRedisAddon extends JavaPlugin implements Listener {
     private Jedis jedis;
     private Jedis subscriberJedis;
     private String redisChannel;
-    private String serverId;
     private final MiniMessage miniMessage = MiniMessage.miniMessage();
 
     @Override
@@ -25,7 +24,6 @@ public final class ChatRedisAddon extends JavaPlugin implements Listener {
         String redisHost = getConfig().getString("redis.host");
         int redisPort = getConfig().getInt("redis.port");
         redisChannel = getConfig().getString("redis.channel");
-        serverId = getConfig().getString("server.id");  // Get the unique server identifier
 
         // Initialize Redis
         jedis = new Jedis(redisHost, redisPort);
@@ -40,20 +38,10 @@ public final class ChatRedisAddon extends JavaPlugin implements Listener {
                 @Override
                 public void onMessage(String channel, String message) {
                     if (channel.equals(redisChannel)) {
-                        // Split the message to get the server ID and the actual message
-                        int separatorIndex = message.indexOf(':');
-                        if (separatorIndex == -1) return;  // Invalid message format
-
-                        String receivedServerId = message.substring(0, separatorIndex);
-                        String serializedComponent = message.substring(separatorIndex + 1);
-
-                        // Skip the message if it was sent by this server
-                        if (!receivedServerId.equals(serverId)) {
-                            Component component = miniMessage.deserialize(serializedComponent);
-                            getServer().getScheduler().runTask(ChatRedisAddon.this, () -> {
-                                getServer().broadcast(component);
-                            });
-                        }
+                        Component component = miniMessage.deserialize(message);
+                        getServer().getScheduler().runTask(ChatRedisAddon.this, () -> {
+                            getServer().broadcast(component);
+                        });
                     }
                 }
             }, redisChannel);
@@ -79,10 +67,10 @@ public final class ChatRedisAddon extends JavaPlugin implements Listener {
         // Serialize the chat message
         String serializedMessage = miniMessage.serialize(renderedMessage);
 
-        // Append the server ID to the message
-        String messageWithId = serverId + ":" + serializedMessage;
-
         // Publish the chat message to Redis
-        jedis.publish(redisChannel, messageWithId);
+        jedis.publish(redisChannel, serializedMessage);
+
+        // Cancel the original chat event to prevent local broadcast
+        event.setCancelled(true);
     }
 }

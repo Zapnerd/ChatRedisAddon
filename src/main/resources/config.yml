@@ -2,5 +2,3 @@ redis:
   host: "localhost"
   port: 6379
   channel: "chatChannel"
-server:
-  name: "Server1"
